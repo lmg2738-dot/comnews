@@ -1,7 +1,7 @@
 import { getRedis } from "../lib/redis-client";
 import { getConfig } from "../lib/config";
 import { collectArticles } from "../lib/news";
-import { loadState } from "../lib/storage";
+import { getRedisStateKey, loadState } from "../lib/storage";
 import { todayKST, yesterdayKST } from "../lib/dates";
 
 async function main() {
@@ -14,7 +14,7 @@ async function main() {
   const yesterday = yesterdayKST();
   const today = todayKST();
 
-  console.log("=== CJ 뉴스 상태 진단 ===\n");
+  console.log("=== 커뮤니케이션채널 뉴스 상태 진단 ===\n");
   console.log("KST 오늘:", today, "| 어제:", yesterday);
   console.log("수집(지금):", collected.length, "건");
   console.log("Redis/articles 저장:", state.articles.length, "건");
@@ -29,7 +29,7 @@ async function main() {
     const raw = await redis.get<{
       sent: Record<string, string>;
       articles: unknown[];
-    }>("cj-news:state");
+    }>(getRedisStateKey());
     if (raw) {
       console.log("\n[Upstash Redis 직접 조회]");
       console.log("  articles:", raw.articles?.length ?? 0);

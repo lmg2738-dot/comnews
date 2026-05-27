@@ -18,7 +18,7 @@ async function tick() {
   }
 }
 
-console.log(`CJ 뉴스 배치 시작 — ${SCHEDULE} (${TZ}), 즉시 1회 실행`);
+console.log(`커뮤니케이션채널 뉴스 배치 시작 — ${SCHEDULE} (${TZ}), 즉시 1회 실행`);
 
 cron.schedule(SCHEDULE, tick, { timezone: TZ });
 void tick();

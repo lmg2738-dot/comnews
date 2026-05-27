@@ -1,3 +1,5 @@
+import { APP_NAME } from "./branding";
+
 export type TelegramSendResult = {
   ok: boolean;
   status: number;
@@ -81,7 +83,7 @@ export function formatTelegramMessage(article: {
   const link = article.link;
 
   return (
-    `📰 <b>CJ 뉴스 알림</b>\n\n` +
+    `📰 <b>${escapeHtml(APP_NAME)}</b>\n\n` +
     `<b>${title}</b>\n` +
     `출처: ${source}\n` +
     `<a href="${link}">기사 보기</a>\n\n` +

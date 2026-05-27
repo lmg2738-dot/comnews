@@ -1,3 +1,4 @@
+import { APP_NAME, APP_NAME_SHORT, APP_TAGLINE } from "@/lib/branding";
 import {
   formatDisplayDay,
   todayKST,
@@ -37,11 +38,11 @@ export default async function HomePage() {
         <header className="hero panel">
           <div className="hero__brand">
             <span className="hero__mark" aria-hidden>
-              CJ
+              {APP_NAME_SHORT}
             </span>
             <div className="hero__titles">
-              <p className="hero__eyebrow">News Monitor</p>
-              <h1 className="hero__title">뉴스 알림</h1>
+              <p className="hero__eyebrow">{APP_TAGLINE}</p>
+              <h1 className="hero__title">{APP_NAME}</h1>
             </div>
           </div>
 
@@ -135,7 +136,7 @@ export default async function HomePage() {
                 {!storageReady ? (
                   <>
                     Vercel Environment에 Upstash·텔레그램 변수를 설정하거나
-                    GitHub Actions에서 CJ News Batch를 실행하세요.
+                    GitHub Actions에서 COM News Batch를 실행하세요.
                   </>
                 ) : storedTotal > 0 ? (
                   <>

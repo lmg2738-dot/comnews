@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { APP_NAME } from "@/lib/branding";
 import { getConfig } from "@/lib/config";
 import {
   formatTelegramMessage,
@@ -32,7 +33,7 @@ export async function GET() {
     const getMeResult = await getMe(telegramBotToken);
 
     const plainMessage =
-      `[CJ 뉴스 알림 테스트]\n` +
+      `[${APP_NAME} 테스트]\n` +
       `${new Intl.DateTimeFormat("ko-KR", {
         timeZone: "Asia/Seoul",
         dateStyle: "medium",
@@ -49,7 +50,7 @@ export async function GET() {
     const htmlMessage = formatTelegramMessage({
       title: "텔레그램 HTML 형식 테스트",
       link: "https://news.google.com",
-      source: "CJ News Alert",
+      source: APP_NAME,
     });
 
     const htmlSend = await sendTelegramDetailed(

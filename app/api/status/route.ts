@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { jsonWithCors, optionsCors } from "@/lib/api-cors";
 import { todayKST, yesterdayKST } from "@/lib/dates";
 import { collectArticles } from "@/lib/news";
 import { getConfig } from "@/lib/config";
@@ -7,12 +7,18 @@ import { isRedisConfigured } from "@/lib/redis-client";
 import {
   canPersistState,
   getActiveStorageBackend,
+  getRedisInstanceId,
+  getRedisStateKey,
   getStatePublicUrl,
   getVisibleArticles,
   loadState,
 } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
+
+export async function OPTIONS() {
+  return optionsCors();
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -33,13 +39,15 @@ export async function GET(request: Request) {
 
     const stateAfter = run ? await loadState() : state;
 
-    return NextResponse.json({
+    return jsonWithCors({
       ok: true,
       schedule: "github-actions-hourly-kst",
       scheduleDoc: "/docs/SCHEDULE-FREE.md",
       envDoc: "/docs/VERCEL-ENV.md",
       storageBackend: getActiveStorageBackend(),
       redisConfigured: isRedisConfigured(),
+      redisInstanceId: getRedisInstanceId(),
+      redisStateKey: getRedisStateKey(),
       storageReady: canPersistState(),
       stateUrl: getStatePublicUrl(),
       today: todayKST(),
@@ -58,6 +66,6 @@ export async function GET(request: Request) {
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return jsonWithCors({ ok: false, error: message }, { status: 500 });
   }
 }

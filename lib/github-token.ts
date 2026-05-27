@@ -9,5 +9,5 @@ export function getGitHubToken(): string | undefined {
 }
 
 export function getGitHubRepository(): string {
-  return process.env.GITHUB_REPOSITORY?.trim() || "lmg2738-dot/news";
+  return process.env.GITHUB_REPOSITORY?.trim() || "lmg2738-dot/comnews";
 }

@@ -56,7 +56,7 @@ async function main() {
   }
 
   const plainText =
-    `[CJ 뉴스 알림 테스트]\n` +
+    `[커뮤니케이션채널 뉴스 테스트]\n` +
     `시각: ${new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}\n` +
     `단건 API 호출 정상 여부 확인용 메시지입니다.`;
 

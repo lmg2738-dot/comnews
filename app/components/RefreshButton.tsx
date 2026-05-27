@@ -1,11 +1,12 @@
 "use client";
 
+import { REFRESH_RUN_URL, LOCAL_STORAGE_AUTO_KEY } from "@/lib/branding";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const AUTO_INTERVAL_MS = 60 * 60 * 1000;
-const RUN_URL = "/api/status?run=1";
-const LAST_AUTO_KEY = "cj-news-last-auto-run";
+const RUN_URL = REFRESH_RUN_URL;
+const LAST_AUTO_KEY = LOCAL_STORAGE_AUTO_KEY;
 
 function RefreshIcon({ spinning }: { spinning: boolean }) {
   return (

@@ -2,6 +2,7 @@ import * as cheerio from "cheerio";
 import { createHash } from "crypto";
 import Parser from "rss-parser";
 import { dayKeyKST } from "./dates";
+import { getRedisInstanceId } from "./redis-instance";
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
@@ -26,6 +27,8 @@ export type StoredArticle = RawArticle & {
   hash: string;
   addedAt: string;
   day: string;
+  /** 같은 Upstash 공유 시 프로젝트 구분 (docs/SHARED-UPSTASH.md) */
+  instanceId?: string;
 };
 
 const rssParser = new Parser({
@@ -113,6 +116,7 @@ export function toStoredArticle(
     ...art,
     addedAt,
     day: dayKeyKST(new Date()),
+    instanceId: getRedisInstanceId(),
   };
 }
 

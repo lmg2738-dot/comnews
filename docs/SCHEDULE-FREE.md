@@ -22,7 +22,7 @@ Vercel **Cron Jobs는 유료 플랜** 기능입니다. 이 프로젝트는 **Git
 
 ### 최초 1회 확인 (필수)
 
-1. GitHub 저장소 → **Actions** → **CJ News Batch (hourly)**
+1. GitHub 저장소 → **Actions** → **COM News Batch (hourly)**
 2. **「Scheduled workflows are disabled」** → **Enable**
 3. **Run workflow** 수동 실행 → 초록 체크, Summary에 `telegram_sent` 확인
 4. **Secrets** 4개 설정 (`docs/VERCEL-ENV.md` 참고)

@@ -15,6 +15,8 @@ Production · Preview · Development 모두에 동일하게 넣는 것을 권장
 | `TELEGRAM_CHAT_ID` | ✅ | 알림 받을 채팅 ID | 봇과 대화 후 `getUpdates` 등 |
 | `UPSTASH_REDIS_REST_URL` | ✅ | Redis REST URL | [Upstash Console](https://console.upstash.com) → DB → REST |
 | `UPSTASH_REDIS_REST_TOKEN` | ✅ | Redis REST 토큰 | 동일 |
+| `REDIS_INSTANCE_ID` | 선택 | 같은 Upstash를 여러 앱이 쓸 때 | **기본 `com`** → `com-news:state`. CJ 원본은 `cj` → [SHARED-UPSTASH.md](./SHARED-UPSTASH.md) |
+| `REDIS_STATE_KEY` | 선택 | Redis 키 직접 지정 | `REDIS_INSTANCE_ID` 보다 우선 |
 | `CRON_SECRET` | 권장 | `/api/cron` 호출 비밀번호 | 임의 긴 문자열 (32자 이상) |
 | `NEWS_KEYWORDS` | 선택 | 검색 키워드(OR) | 기본 `CJ`. **쉼표로 구분** — 키워드마다 Google·네이버를 각각 검색 후 합침 |
 
@@ -23,7 +25,7 @@ Production · Preview · Development 모두에 동일하게 넣는 것을 권장
 1. 텔레그램·Upstash 값을 위 변수에 붙여넣기
 2. 저장 후 **Deployments → Redeploy** (환경 변수는 재배포 후 반영)
 3. `https://<도메인>/api/test-telegram` 으로 텔레그램 테스트
-4. `https://<도메인>/api/status` 에서 `redisConfigured: true` 확인
+4. `https://<도메인>/api/status` 에서 `redisConfigured: true`, `redisStateKey: "com-news:state"` 확인
 
 ---
 
@@ -35,6 +37,7 @@ Production · Preview · Development 모두에 동일하게 넣는 것을 권장
 |-------------|------|------|
 | `UPSTASH_REDIS_REST_URL` | ✅ | Vercel과 **동일**한 Upstash URL |
 | `UPSTASH_REDIS_REST_TOKEN` | ✅ | Vercel과 **동일**한 토큰 |
+| `REDIS_INSTANCE_ID` | 선택 | Vercel과 동일 (`com` 권장) |
 
 Actions에서도 텔레그램을 쓰려면 아래 Secrets를 추가합니다.
 

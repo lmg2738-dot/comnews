@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { minStorageDayKST } from "./dates";
 import { getRedis, isRedisConfigured } from "./redis-client";
+import { filterArticlesForThisInstance } from "./article-filter";
 import { dedupeArticles, prepareVisibleArticles, sortNewestFirst } from "./articles";
 import { getGitHubRepository, getGitHubToken } from "./github-token";
 import {
@@ -10,15 +11,24 @@ import {
 } from "./github-workflow";
 import type { StoredArticle } from "./news";
 import { trimSentHistory } from "./news";
+import {
+  getRedisInstanceId,
+  getRedisStateKey,
+  isRedisPayloadForThisInstance,
+} from "./redis-instance";
 
 export const STATE_FILE = "data/news-state.json";
 const STATE_BRANCH = process.env.STATE_BRANCH ?? "main";
-const REDIS_KEY = "cj-news:state";
 
 export type AppState = {
   sent: Record<string, string>;
   articles: StoredArticle[];
 };
+
+/** Redis에 저장되는 형태 (instanceId 안전장치) */
+type RedisStatePayload = AppState & { instanceId: string };
+
+export { getRedisInstanceId, getRedisStateKey };
 
 export type StorageBackend = "redis" | "github" | "local" | "none";
 
@@ -57,10 +67,11 @@ export function isBlobConfigured(): boolean {
 }
 
 function parseState(data: AppState): AppState {
-  const articles = Array.isArray(data.articles) ? data.articles : [];
+  const raw = Array.isArray(data.articles) ? data.articles : [];
+  const articles = normalizeStoredArticles(filterArticlesForThisInstance(raw));
   return {
     sent: data.sent ?? {},
-    articles: normalizeStoredArticles(articles),
+    articles,
   };
 }
 
@@ -78,8 +89,10 @@ async function loadFromRedis(): Promise<AppState | null> {
   const redis = getRedis();
   if (!redis) return null;
   try {
-    const data = await redis.get<AppState>(REDIS_KEY);
-    return data ? parseState(data) : null;
+    const data = await redis.get<RedisStatePayload>(getRedisStateKey());
+    if (!data) return null;
+    if (!isRedisPayloadForThisInstance(data)) return null;
+    return parseState(data);
   } catch {
     return null;
   }
@@ -93,8 +106,10 @@ async function loadFromGitHubRaw(): Promise<AppState> {
 }
 
 export async function loadState(): Promise<AppState> {
-  const fromRedis = await loadFromRedis();
-  if (fromRedis) return fromRedis;
+  if (isRedisConfigured()) {
+    const fromRedis = await loadFromRedis();
+    return fromRedis ?? defaultState();
+  }
 
   if (!process.env.VERCEL) {
     const local = readLocalState();
@@ -113,7 +128,11 @@ function writeLocalState(state: AppState): void {
 async function saveToRedis(state: AppState): Promise<void> {
   const redis = getRedis();
   if (!redis) throw new Error("Redis not configured");
-  await redis.set(REDIS_KEY, state);
+  const payload: RedisStatePayload = {
+    ...state,
+    instanceId: getRedisInstanceId(),
+  };
+  await redis.set(getRedisStateKey(), payload);
 }
 
 async function saveToGitHubApi(state: AppState): Promise<void> {
@@ -173,7 +192,7 @@ async function saveViaGitHubWithWorkflowFallback(
     if (trigger.ok) return "workflow";
     throw new Error(
       `GitHub Actions 트리거 실패: ${trigger.detail}. ` +
-        "PAT에 Actions Read and write를 추가하거나, Actions 탭에서 'CJ News Batch'를 Run workflow 하세요."
+        "PAT에 Actions Read and write를 추가하거나, Actions 탭에서 'COM News Batch'를 Run workflow 하세요."
     );
   }
 
@@ -194,9 +213,12 @@ export type SaveMode = "redis" | "local" | "api" | "workflow";
 
 export async function saveState(state: AppState): Promise<SaveMode> {
   const minDay = minStorageDayKST();
+  const instanceArticles = stampArticlesInstanceId(
+    filterArticlesForThisInstance(state.articles)
+  );
   const pruned: AppState = {
     sent: trimSentHistory(pruneSentForStorage(state.sent, minDay)),
-    articles: pruneArticlesForStorage(state.articles, minDay),
+    articles: pruneArticlesForStorage(instanceArticles, minDay),
   };
 
   const backend = getActiveStorageBackend();
@@ -220,9 +242,14 @@ export async function saveState(state: AppState): Promise<SaveMode> {
     default:
       throw new Error(
         "Vercel 저장소 미설정: UPSTASH_REDIS_REST_URL·UPSTASH_REDIS_REST_TOKEN 환경 변수 설정 " +
-          "(console.upstash.com) 또는 GitHub Actions 'CJ News Batch' 실행"
+          "(console.upstash.com) 또는 GitHub Actions 'COM News Batch' 실행"
       );
   }
+}
+
+function stampArticlesInstanceId(articles: StoredArticle[]): StoredArticle[] {
+  const id = getRedisInstanceId();
+  return articles.map((a) => ({ ...a, instanceId: id }));
 }
 
 function normalizeStoredArticles(articles: StoredArticle[]): StoredArticle[] {

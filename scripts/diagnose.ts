@@ -8,16 +8,19 @@ import { collectArticles } from "../lib/news";
 import { runNewsCycle } from "../lib/runner";
 import {
   canPersistState,
+  getRedisInstanceId,
+  getRedisStateKey,
   getStatePublicUrl,
   getVisibleArticles,
   loadState,
 } from "../lib/storage";
 
 async function main() {
-  console.log("=== CJ 뉴스 진단 ===");
+  console.log("=== 커뮤니케이션채널 뉴스 진단 ===");
   console.log("KST 오늘:", todayKST(), "| 어제:", yesterdayKST());
   console.log("상태 URL:", getStatePublicUrl());
   console.log("저장 가능:", canPersistState() ? "예" : "아니오 (GitHub Actions 또는 GITHUB_TOKEN)");
+  console.log("Redis instance:", getRedisInstanceId(), "| key:", getRedisStateKey());
 
   const { keywords } = getConfig();
   const collected = await collectArticles(keywords);

@@ -1,6 +1,6 @@
 # 무료 스케줄: 매시 정각 (Vercel Cron 불필요)
 # cron: 0 * * * * (UTC 매시 0분) → KST(UTC+9) 매시 정각 00분
-name: CJ News Batch (hourly)
+name: COM News Batch (hourly)
 
 on:
   schedule:
@@ -10,7 +10,7 @@ on:
     types: [run-news-batch]
 
 concurrency:
-  group: cj-news-batch
+  group: com-news-batch
   cancel-in-progress: false
 
 permissions:
@@ -58,7 +58,7 @@ jobs:
       - name: Job summary
         if: always()
         run: |
-          echo "## CJ News Batch (hourly)" >> "$GITHUB_STEP_SUMMARY"
+          echo "## COM News Batch (hourly)" >> "$GITHUB_STEP_SUMMARY"
           echo "- UTC: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_STEP_SUMMARY"
           echo "- KST: $(TZ=Asia/Seoul date +%Y-%m-%dT%H:%M:%S)" >> "$GITHUB_STEP_SUMMARY"
           echo "- collected: ${{ steps.run.outputs.collected_count }}" >> "$GITHUB_STEP_SUMMARY"

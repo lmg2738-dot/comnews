@@ -68,6 +68,6 @@ export function patPermissionHint(status: number): string {
   if (status !== 403) return "";
   return (
     " PAT 권한: 저장소 news, Actions Read and write. " +
-    "또는 GitHub Actions에서 'CJ News Batch' 수동 실행."
+    "또는 GitHub Actions에서 'COM News Batch' 수동 실행."
   );
 }

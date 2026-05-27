@@ -1,3 +1,4 @@
+import { filterArticlesForThisInstance } from "./article-filter";
 import { visibleDayKeys } from "./dates";
 import type { StoredArticle } from "./news";
 
@@ -24,6 +25,8 @@ export function prepareVisibleArticles(
 ): StoredArticle[] {
   const days = visibleDayKeys();
   return sortNewestFirst(
-    dedupeArticles(articles.filter((a) => days.has(a.day)))
+    dedupeArticles(
+      filterArticlesForThisInstance(articles).filter((a) => days.has(a.day))
+    )
   );
 }
