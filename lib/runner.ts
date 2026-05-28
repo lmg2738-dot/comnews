@@ -16,6 +16,7 @@ import {
 import {
   formatTelegramMessage,
   sendTelegramDetailed,
+  telegramFailureHint,
 } from "./telegram";
 
 export type RunResult = {
@@ -44,9 +45,11 @@ export async function runNewsCycle(): Promise<RunResult> {
   let syncedCount = 0;
   let newCount = 0;
   let telegramSent = 0;
+  let telegramErrorHint: string | undefined;
 
   for (const art of collected) {
     const stored = toStoredArticle(art);
+    if (!stored) continue;
     const before = state.articles.length;
     state.articles = dedupeArticles([stored, ...state.articles]);
     if (state.articles.length >= before) syncedCount += 1;
@@ -59,6 +62,7 @@ export async function runNewsCycle(): Promise<RunResult> {
     const stored =
       state.articles.find((a) => a.hash === art.hash) ??
       toStoredArticle(art);
+    if (!stored) continue;
 
     const tg = await sendTelegramDetailed(
       config.telegramBotToken,
@@ -69,12 +73,15 @@ export async function runNewsCycle(): Promise<RunResult> {
       telegramSent += 1;
       state.sent[art.hash] = stored.addedAt;
     } else {
+      const hint = telegramFailureHint(tg);
+      if (!telegramErrorHint && hint) telegramErrorHint = hint;
       console.error(
         "[telegram]",
         art.hash,
         tg.status,
         tg.errorCode,
-        tg.description
+        tg.description,
+        tg.migrateToChatId ?? ""
       );
     }
     newCount += 1;
@@ -107,6 +114,11 @@ export async function runNewsCycle(): Promise<RunResult> {
       ? " (GitHub Actions 배치 트리거 — 1~3분 후 페이지 갱신)"
       : "";
 
+  const telegramNote =
+    telegramSent === 0 && newCount > 0 && telegramErrorHint
+      ? ` · 텔레그램 실패: ${telegramErrorHint}`
+      : "";
+
   return {
     ok: true,
     newCount,
@@ -124,7 +136,7 @@ export async function runNewsCycle(): Promise<RunResult> {
         : saveMode === "workflow"
           ? `수집 ${collected.length}건 · 저장은 Actions 배치에서 진행${workflowNote}`
           : newCount > 0
-            ? `수집 ${collected.length}건 · 웹 반영 ${syncedCount}건 · 텔레그램 ${telegramSent}건 · 표시 ${visible.length}건`
-            : `수집 ${collected.length}건 · 웹 반영 ${syncedCount}건 · 표시 ${visible.length}건`,
+            ? `수집 ${collected.length}건 · 웹 반영 ${syncedCount}건 · 텔레그램 ${telegramSent}건 · 표시 ${visible.length}건${telegramNote}`
+            : `수집 ${collected.length}건 · 웹 반영 ${syncedCount}건 · 표시 ${visible.length}건${telegramNote}`,
   };
 }

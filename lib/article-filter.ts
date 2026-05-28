@@ -1,3 +1,4 @@
+import { isTrustworthyForDisplay } from "./article-dates";
 import { articleBelongsToThisInstance } from "./redis-instance";
 import type { StoredArticle } from "./news";
 
@@ -26,6 +27,7 @@ export function filterArticlesForThisInstance(
   return articles
     .filter(isValidStoredArticle)
     .filter(articleBelongsToThisInstance)
+    .filter(isTrustworthyForDisplay)
     .map((a) => ({
       title: a.title.trim(),
       link: a.link.trim(),
@@ -33,6 +35,7 @@ export function filterArticlesForThisInstance(
       hash: a.hash.trim(),
       addedAt: a.addedAt.trim(),
       day: a.day.trim(),
+      published: a.published?.trim(),
       instanceId: a.instanceId,
     }));
 }

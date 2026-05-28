@@ -1,3 +1,4 @@
+import { isTrustworthyForDisplay } from "./article-dates";
 import { filterArticlesForThisInstance } from "./article-filter";
 import { visibleDayKeys } from "./dates";
 import type { StoredArticle } from "./news";
@@ -14,9 +15,13 @@ export function dedupeArticles(articles: StoredArticle[]): StoredArticle[] {
   return Array.from(byHash.values());
 }
 
-/** 최신순(위→아래) 정렬 */
+/** 최신순(위→아래) — 게시일·수집 시각 기준 */
 export function sortNewestFirst(articles: StoredArticle[]): StoredArticle[] {
-  return [...articles].sort((a, b) => b.addedAt.localeCompare(a.addedAt));
+  return [...articles].sort((a, b) => {
+    const pub = (b.published ?? b.addedAt).localeCompare(a.published ?? a.addedAt);
+    if (pub !== 0) return pub;
+    return b.addedAt.localeCompare(a.addedAt);
+  });
 }
 
 /** 당일·어제만, 중복 제거, 최신순 */
@@ -26,7 +31,9 @@ export function prepareVisibleArticles(
   const days = visibleDayKeys();
   return sortNewestFirst(
     dedupeArticles(
-      filterArticlesForThisInstance(articles).filter((a) => days.has(a.day))
+      filterArticlesForThisInstance(articles)
+        .filter((a) => days.has(a.day))
+        .filter(isTrustworthyForDisplay)
     )
   );
 }

@@ -12,7 +12,7 @@ Production · Preview · Development 모두에 동일하게 넣는 것을 권장
 | 변수명 | 필수 | 설명 | 값 가져오는 곳 |
 |--------|------|------|----------------|
 | `TELEGRAM_BOT_TOKEN` | ✅ | 텔레그램 봇 토큰 | [@BotFather](https://t.me/BotFather) |
-| `TELEGRAM_CHAT_ID` | ✅ | 알림 받을 채팅 ID | 봇과 대화 후 `getUpdates` 등 |
+| `TELEGRAM_CHAT_ID` | ✅ | 알림 받을 채팅 ID | 봇을 **그룹/채널에 추가** 후 확인 (아래 참고) |
 | `UPSTASH_REDIS_REST_URL` | ✅ | Redis REST URL | [Upstash Console](https://console.upstash.com) → DB → REST |
 | `UPSTASH_REDIS_REST_TOKEN` | ✅ | Redis REST 토큰 | 동일 |
 | `REDIS_INSTANCE_ID` | 선택 | 같은 Upstash를 여러 앱이 쓸 때 | **기본 `com`** → `com-news:state`. CJ 원본은 `cj` → [SHARED-UPSTASH.md](./SHARED-UPSTASH.md) |
@@ -72,6 +72,18 @@ UPSTASH_REDIS_REST_TOKEN=AXxxxxxxxxxxxxxxxxxxxxxxxx
 CRON_SECRET=your-random-long-secret-here
 NEWS_KEYWORDS=CJ,롯데
 ```
+
+### 텔레그램 `chat_id` 확인 · 슈퍼그룹 전환
+
+1. 봇(`@axnewsnow_bot` 등)을 알림 받을 **그룹/채널에 초대**
+2. 그룹에서 아무 메시지 1건 전송
+3. 브라우저에서 `https://api.telegram.org/bot<토큰>/getUpdates` 열기 → `chat.id` 확인  
+   (또는 `@userinfobot` / `@getidsbot` 으로 확인)
+4. **일반 그룹이 슈퍼그룹으로 바뀌면** `chat_id`가 `-100…` 형태로 **바뀝니다**.  
+   예전 ID(`-5273032241` 등)로는 전송이 안 되고, API 오류:  
+   `group chat was upgraded to a supergroup chat`
+5. `/api/test-telegram` 응답의 `migrateToChatId` 또는 `hint`에 **새 ID**가 나오면  
+   Vercel · GitHub Secrets **`TELEGRAM_CHAT_ID`** 를 그 값으로 바꾼 뒤 **재배포**
 
 ### 다중 키워드 (OR 검색)
 

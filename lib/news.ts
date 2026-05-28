@@ -2,6 +2,14 @@ import * as cheerio from "cheerio";
 import { createHash } from "crypto";
 import Parser from "rss-parser";
 import { dayKeyKST } from "./dates";
+import {
+  articleDayFromPublished,
+  googleNewsQuery,
+  isRecentNewsDay,
+  naverTimeLabelToDayKST,
+  passesRecencyFilter,
+  resolveArticleDayKST,
+} from "./article-dates";
 import { getRedisInstanceId } from "./redis-instance";
 
 const USER_AGENT =
@@ -9,8 +17,9 @@ const USER_AGENT =
 
 const GOOGLE_NEWS_RSS =
   "https://news.google.com/rss/search?q={query}&hl=ko&gl=KR&ceid=KR:ko";
+/** pd=3: 최근 1주(목록) → 앱에서 2일·48h로 재필터 */
 const NAVER_NEWS_URL =
-  "https://search.naver.com/search.naver?where=news&query={query}&sort=1&pd=4";
+  "https://search.naver.com/search.naver?where=news&query={query}&sort=1&pd=3";
 
 /** 회당 텔레그램 전송 상한 (중복 제거 후, 미전송 기사만) */
 export const MAX_NEW_PER_CYCLE = 20;
@@ -44,18 +53,25 @@ export function articleHash(title: string, link: string): string {
 async function fetchGoogleNews(keyword: string): Promise<RawArticle[]> {
   const url = GOOGLE_NEWS_RSS.replace(
     "{query}",
-    encodeURIComponent(keyword)
+    encodeURIComponent(googleNewsQuery(keyword))
   );
   try {
     const feed = await rssParser.parseURL(url);
-    return (feed.items ?? []).map((entry) => ({
-      title: (entry.title ?? "").trim(),
-      link: (entry.link ?? "").trim(),
-      source:
-        (entry as { source?: { title?: string } }).source?.title ??
-        "Google News",
-      published: entry.pubDate ?? "",
-    }));
+    const articles: RawArticle[] = [];
+    for (const entry of feed.items ?? []) {
+      const published = entry.pubDate ?? "";
+      if (!passesRecencyFilter({ published })) continue;
+
+      articles.push({
+        title: (entry.title ?? "").trim(),
+        link: (entry.link ?? "").trim(),
+        source:
+          (entry as { source?: { title?: string } }).source?.title ??
+          "Google News",
+        published,
+      });
+    }
+    return articles;
   } catch {
     return [];
   }
@@ -78,9 +94,27 @@ async function fetchNaverNews(keyword: string): Promise<RawArticle[]> {
     $("a.news_tit").each((_, el) => {
       const title = $(el).text().trim();
       const link = $(el).attr("href")?.trim() ?? "";
-      if (title && link) {
-        articles.push({ title, link, source: "네이버뉴스" });
-      }
+      if (!title || !link) return;
+
+      const wrap = $(el).closest(".news_area, .news_wrap, li.bx");
+      let timeLabel = "";
+      wrap.find("span.info").each((__, info) => {
+        const txt = $(info).text().trim();
+        if (/전$|어제|^\d{4}\./.test(txt)) timeLabel = txt;
+      });
+
+      const pubDay = naverTimeLabelToDayKST(timeLabel);
+      if (!pubDay || !isRecentNewsDay(pubDay)) return;
+
+      const published = parseNaverPublishedIso(pubDay, timeLabel);
+      if (!passesRecencyFilter({ published })) return;
+
+      articles.push({
+        title,
+        link,
+        source: "네이버뉴스",
+        published,
+      });
     });
     return articles;
   } catch {
@@ -108,14 +142,27 @@ export async function collectArticles(
   return all;
 }
 
+/** 네이버 상대 시간 → 대략적 ISO (day 검증용) */
+function parseNaverPublishedIso(day: string, label: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(day) && /^\d{4}\./.test(label.trim())) {
+    const [y, m, d] = label.replace(/\.$/, "").split(".").map(Number);
+    return new Date(Date.UTC(y, m - 1, d, 0, 0, 0) - 9 * 60 * 60 * 1000).toISOString();
+  }
+  return new Date().toISOString();
+}
+
 export function toStoredArticle(
   art: RawArticle & { hash: string }
-): StoredArticle {
+): StoredArticle | null {
+  if (!passesRecencyFilter(art)) return null;
+  const day = resolveArticleDayKST(art);
+  if (!day) return null;
+
   const addedAt = new Date().toISOString();
   return {
     ...art,
     addedAt,
-    day: dayKeyKST(new Date()),
+    day,
     instanceId: getRedisInstanceId(),
   };
 }

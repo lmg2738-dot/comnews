@@ -5,6 +5,15 @@ export type TelegramSendResult = {
   status: number;
   errorCode?: number;
   description?: string;
+  /** 그룹→슈퍼그룹 전환 시 Telegram이 알려주는 새 chat_id */
+  migrateToChatId?: string;
+};
+
+type TelegramApiBody = {
+  ok?: boolean;
+  error_code?: number;
+  description?: string;
+  parameters?: { migrate_to_chat_id?: number };
 };
 
 export async function sendTelegramDetailed(
@@ -26,19 +35,22 @@ export async function sendTelegramDetailed(
       signal: AbortSignal.timeout(20000),
     });
 
-    let body: { ok?: boolean; error_code?: number; description?: string } = {};
+    let body: TelegramApiBody = {};
     try {
-      body = (await res.json()) as typeof body;
+      body = (await res.json()) as TelegramApiBody;
     } catch {
       body = { description: await res.text().catch(() => "") };
     }
 
+    const migrateId = body.parameters?.migrate_to_chat_id;
     const apiOk = Boolean(body.ok);
     return {
       ok: res.ok && apiOk,
       status: res.status,
       errorCode: body.error_code,
       description: body.description,
+      migrateToChatId:
+        migrateId !== undefined ? String(migrateId) : undefined,
     };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -96,4 +108,26 @@ function escapeHtml(text: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+/** sendMessage 실패 시 사용자 조치 안내 */
+export function telegramFailureHint(result: TelegramSendResult): string {
+  if (result.ok) return "";
+  if (result.migrateToChatId) {
+    return (
+      `그룹이 슈퍼그룹으로 바뀌었습니다. Vercel·GitHub Secrets의 TELEGRAM_CHAT_ID를 ` +
+      `${result.migrateToChatId} 로 바꾼 뒤 재배포하세요.`
+    );
+  }
+  const desc = result.description ?? "";
+  if (desc.includes("upgraded to a supergroup")) {
+    return (
+      "그룹이 슈퍼그룹으로 바뀌었습니다. @userinfobot 또는 getUpdates로 새 chat_id를 확인해 " +
+      "TELEGRAM_CHAT_ID를 갱신하세요."
+    );
+  }
+  if (desc.includes("chat not found") || desc.includes("bot was blocked")) {
+    return "봇을 채팅방에 추가하고 /start 한 뒤 chat_id를 다시 확인하세요.";
+  }
+  return desc || "sendMessage 실패";
 }

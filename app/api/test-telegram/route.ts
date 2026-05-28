@@ -4,6 +4,7 @@ import { getConfig } from "@/lib/config";
 import {
   formatTelegramMessage,
   sendTelegramDetailed,
+  telegramFailureHint,
 } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
@@ -62,9 +63,17 @@ export async function GET() {
     const allOk =
       getMeResult.ok && plainSend.ok && htmlSend.ok;
 
+    const migrateToChatId =
+      plainSend.migrateToChatId ?? htmlSend.migrateToChatId;
+    const failureHint =
+      telegramFailureHint(plainSend) ||
+      telegramFailureHint(htmlSend) ||
+      "getMe 실패 → 토큰 확인. sendMessage 실패 → 봇과 대화 시작(/start) 또는 chat_id 확인.";
+
     return NextResponse.json({
       ok: allOk,
       chatId: telegramChatId,
+      migrateToChatId: migrateToChatId ?? null,
       tests: {
         getMe: getMeResult,
         plainText: plainSend,
@@ -72,7 +81,7 @@ export async function GET() {
       },
       hint: allOk
         ? "텔레그램 앱에서 테스트 메시지 2건을 확인하세요."
-        : "getMe 실패 → 토큰 확인. sendMessage 실패 → 봇과 대화 시작(/start) 또는 chat_id 확인.",
+        : failureHint,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
