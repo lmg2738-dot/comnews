@@ -36,6 +36,7 @@ export function filterArticlesForThisInstance(
       addedAt: a.addedAt.trim(),
       day: a.day.trim(),
       published: a.published?.trim(),
+      keyword: typeof a.keyword === "string" ? a.keyword.trim() : undefined,
       instanceId: a.instanceId,
     }));
 }

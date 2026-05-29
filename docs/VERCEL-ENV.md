@@ -18,7 +18,8 @@ Production · Preview · Development 모두에 동일하게 넣는 것을 권장
 | `REDIS_INSTANCE_ID` | 선택 | 같은 Upstash를 여러 앱이 쓸 때 | **기본 `com`** → `com-news:state`. CJ 원본은 `cj` → [SHARED-UPSTASH.md](./SHARED-UPSTASH.md) |
 | `REDIS_STATE_KEY` | 선택 | Redis 키 직접 지정 | `REDIS_INSTANCE_ID` 보다 우선 |
 | `CRON_SECRET` | 권장 | `/api/cron` 호출 비밀번호 | 임의 긴 문자열 (32자 이상) |
-| `NEWS_KEYWORDS` | 선택 | 검색 키워드(OR) | 기본 `CJ`. **쉼표로 구분** — 키워드마다 Google·네이버를 각각 검색 후 합침 |
+| `NEWS_KEYWORDS` | 선택 | 검색 키워드(OR) | 기본 `CJ`. **쉼표로 구분** — 키워드당 최신 **10건**까지 |
+| `KEYWORD_FETCH_CONCURRENCY` | 선택 | 키워드 동시 수집 수 | 기본 `8`, 최대 `32` |
 
 ### Vercel에 넣을 때 체크리스트
 

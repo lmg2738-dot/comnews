@@ -1,9 +1,11 @@
 import { APP_NAME, APP_NAME_SHORT, APP_TAGLINE } from "@/lib/branding";
+import { getNewsKeywords } from "@/lib/config";
 import {
   formatDisplayDay,
   todayKST,
   yesterdayKST,
 } from "@/lib/dates";
+import { MAX_ARTICLES_PER_KEYWORD } from "@/lib/news";
 import {
   canPersistState,
   getVisibleArticles,
@@ -18,6 +20,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const storageReady = canPersistState();
+  const searchKeywords = getNewsKeywords();
   const state = await loadState();
   const articles = getVisibleArticles(state.articles);
   const storedTotal = state.articles.length;
@@ -47,8 +50,8 @@ export default async function HomePage() {
           </div>
 
           <p className="hero__desc">
-            최근 2일(48시간) 이내 기사만 수집·표시합니다. 최신순 정렬이며, 갱신은
-            GitHub Actions(매시 정각)와 새로고침(탭 열림 시 1시간)으로 합니다.
+            최근 2일(48시간) 이내 · 키워드당 최대 {MAX_ARTICLES_PER_KEYWORD}건.
+            갱신은 GitHub Actions(매시)와 새로고침(1시간)입니다.
           </p>
 
           <div className="stats" role="list">
@@ -119,6 +122,22 @@ export default async function HomePage() {
         </header>
 
         <section className="feed panel" aria-labelledby="feed-heading">
+          {searchKeywords.length > 0 ? (
+            <div className="keyword-bar" aria-label="검색 키워드">
+              <span className="keyword-bar__label">검색 키워드</span>
+              <ul className="keyword-list">
+                {searchKeywords.map((kw) => (
+                  <li key={kw}>
+                    <span className="keyword-chip">{kw}</span>
+                  </li>
+                ))}
+              </ul>
+              <span className="keyword-bar__hint">
+                키워드당 최대 {MAX_ARTICLES_PER_KEYWORD}건 · 최신순
+              </span>
+            </div>
+          ) : null}
+
           <div className="feed__head">
             <h2 id="feed-heading" className="feed__title">
               최신 기사
@@ -172,6 +191,11 @@ export default async function HomePage() {
                           {formatDisplayDay(art.day)}
                         </span>
                         <SentimentBadge sentiment={sentiment} />
+                        {art.keyword ? (
+                          <span className="keyword-chip keyword-chip--article">
+                            {art.keyword}
+                          </span>
+                        ) : null}
                       </div>
                       <time className="card__time" dateTime={art.addedAt}>
                         {new Intl.DateTimeFormat("ko-KR", {

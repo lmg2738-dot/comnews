@@ -7,9 +7,11 @@ import {
   googleNewsQuery,
   isRecentNewsDay,
   naverTimeLabelToDayKST,
+  parsePublishedToDate,
   passesRecencyFilter,
   resolveArticleDayKST,
 } from "./article-dates";
+import { getKeywordFetchConcurrency } from "./config";
 import { getRedisInstanceId } from "./redis-instance";
 
 const USER_AGENT =
@@ -25,17 +27,28 @@ const NAVER_NEWS_URL =
 export const MAX_NEW_PER_CYCLE = 20;
 export const MAX_SENT_HISTORY = 5000;
 
+/** 키워드당 수집·저장 상한 (중복 제거 후 최신순) */
+export const MAX_ARTICLES_PER_KEYWORD = 10;
+
 export type RawArticle = {
   title: string;
   link: string;
   source: string;
   published?: string;
+  /** 수집에 사용된 검색 키워드 */
+  keyword?: string;
+};
+
+export type CollectedArticle = RawArticle & {
+  hash: string;
+  keyword: string;
 };
 
 export type StoredArticle = RawArticle & {
   hash: string;
   addedAt: string;
   day: string;
+  keyword?: string;
   /** 같은 Upstash 공유 시 프로젝트 구분 (docs/SHARED-UPSTASH.md) */
   instanceId?: string;
 };
@@ -122,21 +135,78 @@ async function fetchNaverNews(keyword: string): Promise<RawArticle[]> {
   }
 }
 
+function sortRawByPublishedDesc(a: RawArticle, b: RawArticle): number {
+  const ta = parsePublishedToDate(a.published)?.getTime() ?? 0;
+  const tb = parsePublishedToDate(b.published)?.getTime() ?? 0;
+  return tb - ta;
+}
+
+/** 키워드 1개 — Google·네이버 동시 요청 → 중복 제거 후 최신 MAX_ARTICLES_PER_KEYWORD건 */
+async function collectForKeyword(keyword: string): Promise<CollectedArticle[]> {
+  const [google, naver] = await Promise.all([
+    fetchGoogleNews(keyword),
+    fetchNaverNews(keyword),
+  ]);
+  const merged = [...google, ...naver].sort(sortRawByPublishedDesc);
+  const seen = new Set<string>();
+  const out: CollectedArticle[] = [];
+
+  for (const art of merged) {
+    const h = articleHash(art.title, art.link);
+    if (seen.has(h)) continue;
+    seen.add(h);
+    out.push({ ...art, hash: h, keyword });
+    if (out.length >= MAX_ARTICLES_PER_KEYWORD) break;
+  }
+  return out;
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  if (items.length === 0) return [];
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (nextIndex < items.length) {
+      const i = nextIndex++;
+      results[i] = await fn(items[i]);
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(concurrency, items.length) },
+    () => worker()
+  );
+  await Promise.all(workers);
+  return results;
+}
+
 export async function collectArticles(
   keywords: string[]
-): Promise<(RawArticle & { hash: string })[]> {
-  const all: (RawArticle & { hash: string })[] = [];
+): Promise<CollectedArticle[]> {
+  const uniqueKeywords = [
+    ...new Set(keywords.map((k) => k.trim()).filter(Boolean)),
+  ];
+  if (uniqueKeywords.length === 0) return [];
+
+  const batches = await mapWithConcurrency(
+    uniqueKeywords,
+    getKeywordFetchConcurrency(),
+    collectForKeyword
+  );
+
+  const all: CollectedArticle[] = [];
   const seen = new Set<string>();
 
-  for (const kw of keywords) {
-    for (const fetcher of [fetchGoogleNews, fetchNaverNews]) {
-      const batch = await fetcher(kw);
-      for (const art of batch) {
-        const h = articleHash(art.title, art.link);
-        if (seen.has(h)) continue;
-        seen.add(h);
-        all.push({ ...art, hash: h });
-      }
+  for (const batch of batches) {
+    for (const art of batch) {
+      if (seen.has(art.hash)) continue;
+      seen.add(art.hash);
+      all.push(art);
     }
   }
   return all;
@@ -152,7 +222,7 @@ function parseNaverPublishedIso(day: string, label: string): string {
 }
 
 export function toStoredArticle(
-  art: RawArticle & { hash: string }
+  art: CollectedArticle | (RawArticle & { hash: string })
 ): StoredArticle | null {
   if (!passesRecencyFilter(art)) return null;
   const day = resolveArticleDayKST(art);
@@ -163,6 +233,7 @@ export function toStoredArticle(
     ...art,
     addedAt,
     day,
+    keyword: art.keyword,
     instanceId: getRedisInstanceId(),
   };
 }
