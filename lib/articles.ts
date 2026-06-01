@@ -1,6 +1,7 @@
 import { isTrustworthyForDisplay } from "./article-dates";
 import { filterArticlesForThisInstance } from "./article-filter";
 import { visibleDayKeys } from "./dates";
+import { filterArticlesByActiveKeywords } from "./keywords";
 import type { StoredArticle } from "./news";
 
 /** hash 기준 중복 제거 (같은 기사는 가장 최근 addedAt 유지) */
@@ -31,9 +32,11 @@ export function prepareVisibleArticles(
   const days = visibleDayKeys();
   return sortNewestFirst(
     dedupeArticles(
-      filterArticlesForThisInstance(articles)
-        .filter((a) => days.has(a.day))
-        .filter(isTrustworthyForDisplay)
+      filterArticlesByActiveKeywords(
+        filterArticlesForThisInstance(articles)
+          .filter((a) => days.has(a.day))
+          .filter(isTrustworthyForDisplay)
+      )
     )
   );
 }

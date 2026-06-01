@@ -52,6 +52,7 @@ export async function GET() {
       title: "텔레그램 HTML 형식 테스트",
       link: "https://news.google.com",
       source: APP_NAME,
+      keyword: "테스트키워드",
     });
 
     const htmlSend = await sendTelegramDetailed(

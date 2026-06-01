@@ -45,6 +45,11 @@ jobs:
           [ -z "$TELEGRAM_CHAT_ID" ] && echo "::error::TELEGRAM_CHAT_ID secret 없음" && missing=1
           exit $missing
 
+      - name: Log NEWS_KEYWORDS (GitHub Variables)
+        run: |
+          echo "NEWS_KEYWORDS=${{ vars.NEWS_KEYWORDS }}"
+          echo "KEYWORD_FETCH_CONCURRENCY=${{ vars.KEYWORD_FETCH_CONCURRENCY }}"
+
       - name: Run news batch (Redis + Telegram)
         id: run
         env:

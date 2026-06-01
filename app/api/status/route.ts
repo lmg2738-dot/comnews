@@ -1,7 +1,8 @@
 import { jsonWithCors, optionsCors } from "@/lib/api-cors";
 import { todayKST, yesterdayKST } from "@/lib/dates";
 import { collectArticles } from "@/lib/news";
-import { getConfig } from "@/lib/config";
+import { getConfig, getKeywordFetchConcurrency, getNewsKeywords } from "@/lib/config";
+import { countByKeyword } from "@/lib/keywords";
 import { runNewsCycle } from "@/lib/runner";
 import { isRedisConfigured } from "@/lib/redis-client";
 import {
@@ -39,8 +40,18 @@ export async function GET(request: Request) {
 
     const stateAfter = run ? await loadState() : state;
 
+    const activeKeywords = getNewsKeywords();
+
     return jsonWithCors({
       ok: true,
+      newsKeywords: activeKeywords,
+      keywordFetchConcurrency: getKeywordFetchConcurrency(),
+      keywordNote:
+        "검색 키워드는 NEWS_KEYWORDS 환경 변수입니다. KEYWORD_FETCH_CONCURRENCY는 동시 수집 개수만 설정합니다.",
+      visibleByKeyword: countByKeyword(
+        getVisibleArticles(stateAfter.articles),
+        activeKeywords
+      ),
       schedule: "github-actions-hourly-kst",
       scheduleDoc: "/docs/SCHEDULE-FREE.md",
       envDoc: "/docs/VERCEL-ENV.md",

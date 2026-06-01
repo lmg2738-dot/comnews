@@ -83,6 +83,7 @@ export function formatTelegramMessage(article: {
   title: string;
   link: string;
   source: string;
+  keyword?: string;
 }): string {
   const now = new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
@@ -90,7 +91,7 @@ export function formatTelegramMessage(article: {
     timeStyle: "short",
   }).format(new Date());
 
-  const title = escapeHtml(article.title);
+  const title = formatTelegramHeadline(article.title, article.keyword);
   const source = escapeHtml(article.source);
   const link = article.link;
 
@@ -108,6 +109,17 @@ function escapeHtml(text: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+/** 텔레그램 제목: [키워드] 기사제목 */
+export function formatTelegramHeadline(
+  title: string,
+  keyword?: string
+): string {
+  const safeTitle = escapeHtml(title.trim());
+  const kw = keyword?.trim();
+  if (!kw) return safeTitle;
+  return `[${escapeHtml(kw)}] ${safeTitle}`;
 }
 
 /** sendMessage 실패 시 사용자 조치 안내 */

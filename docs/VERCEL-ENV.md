@@ -39,6 +39,8 @@ Production · Preview · Development 모두에 동일하게 넣는 것을 권장
 | `UPSTASH_REDIS_REST_URL` | ✅ | Vercel과 **동일**한 Upstash URL |
 | `UPSTASH_REDIS_REST_TOKEN` | ✅ | Vercel과 **동일**한 토큰 |
 | `REDIS_INSTANCE_ID` | 선택 | Vercel과 동일 (`com` 권장) |
+| `NEWS_KEYWORDS` | ✅ | Vercel과 **동일**한 키워드 목록 (Repository **Variables**) |
+| `KEYWORD_FETCH_CONCURRENCY` | 선택 | Vercel과 동일 (동시 수집 수) |
 
 Actions에서도 텔레그램을 쓰려면 아래 Secrets를 추가합니다.
 
@@ -98,3 +100,13 @@ NEWS_KEYWORDS=CJ,롯데
 `NEWS_KEYWORDS=CJ,롯데,삼성`
 
 `GITHUB_TOKEN`은 Vercel에서 Redis만 쓸 때 **불필요**합니다.
+
+### 키워드를 바꿨는데 예전 기사·키워드가 보일 때
+
+| 확인 | 내용 |
+|------|------|
+| 변수 이름 | **`NEWS_KEYWORDS`** 에 쉼표로 키워드 입력 (`KEYWORD_FETCH_CONCURRENCY`는 동시 수집 수만 변경) |
+| Vercel | Production·Preview·Development 모두 동일 값 → **Redeploy** |
+| GitHub Actions | Repository → Settings → **Variables** → `NEWS_KEYWORDS` (매시 배치도 동일 값) |
+| 반영 확인 | `/api/status` → `newsKeywords` 배열이 기대와 같은지 확인 |
+| 예전 기사 | 저장소에 남은 기사는 **현재 키워드와 일치하는 것만** 표시·저장 (다음 새로고침/배치 후 정리) |

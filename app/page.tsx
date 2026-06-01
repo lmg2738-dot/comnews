@@ -133,7 +133,8 @@ export default async function HomePage() {
                 ))}
               </ul>
               <span className="keyword-bar__hint">
-                키워드당 최대 {MAX_ARTICLES_PER_KEYWORD}건 · 최신순
+                Vercel <code className="keyword-bar__code">NEWS_KEYWORDS</code> ·
+                키워드당 최대 {MAX_ARTICLES_PER_KEYWORD}건
               </span>
             </div>
           ) : null}

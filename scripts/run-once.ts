@@ -3,6 +3,7 @@
  * 사용: npm run batch:once
  */
 import { appendFileSync } from "fs";
+import { getKeywordFetchConcurrency, getNewsKeywords } from "../lib/config";
 import { runNewsCycle } from "../lib/runner";
 
 function writeGitHubOutput(r: {
@@ -21,6 +22,13 @@ function writeGitHubOutput(r: {
     ].join("\n") + "\n"
   );
 }
+
+console.log(
+  "[config] NEWS_KEYWORDS:",
+  getNewsKeywords().join(", "),
+  "| concurrency:",
+  getKeywordFetchConcurrency()
+);
 
 runNewsCycle()
   .then((r) => {

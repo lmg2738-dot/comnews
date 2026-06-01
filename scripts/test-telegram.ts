@@ -70,6 +70,7 @@ async function main() {
     title: "텔레그램 전송 테스트 기사",
     link: "https://news.google.com",
     source: "테스트",
+    keyword: "CJ",
   });
   const html = await sendRaw(botToken, chatId, htmlMsg, "HTML");
   console.log("  status:", html.status, "| ok:", html.ok);

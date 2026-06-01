@@ -3,10 +3,16 @@ import { join } from "path";
 
 let envFilesLoaded = false;
 
-/** tsx 배치 스크립트에서 .env / .env.local 로드 (Next는 자체 로드) */
+/**
+ * 로컬 tsx 배치용 .env 로드.
+ * Vercel·GitHub Actions는 플랫폼 env만 사용 (파일이 플랫폼 값을 덮어쓰지 않도록 스킵).
+ */
 export function ensureEnvFilesLoaded(): void {
   if (envFilesLoaded) return;
   envFilesLoaded = true;
+  if (process.env.VERCEL || process.env.GITHUB_ACTIONS === "true") {
+    return;
+  }
   loadDotenv({ path: join(process.cwd(), ".env.local") });
   loadDotenv({ path: join(process.cwd(), ".env") });
 }

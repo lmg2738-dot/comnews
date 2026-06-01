@@ -3,6 +3,7 @@ import { join } from "path";
 import { minStorageDayKST } from "./dates";
 import { getRedis, isRedisConfigured } from "./redis-client";
 import { filterArticlesForThisInstance } from "./article-filter";
+import { filterArticlesByActiveKeywords } from "./keywords";
 import { dedupeArticles, prepareVisibleArticles, sortNewestFirst } from "./articles";
 import { getGitHubRepository, getGitHubToken } from "./github-token";
 import {
@@ -214,7 +215,9 @@ export type SaveMode = "redis" | "local" | "api" | "workflow";
 export async function saveState(state: AppState): Promise<SaveMode> {
   const minDay = minStorageDayKST();
   const instanceArticles = stampArticlesInstanceId(
-    filterArticlesForThisInstance(state.articles)
+    filterArticlesByActiveKeywords(
+      filterArticlesForThisInstance(state.articles)
+    )
   );
   const pruned: AppState = {
     sent: trimSentHistory(pruneSentForStorage(state.sent, minDay)),

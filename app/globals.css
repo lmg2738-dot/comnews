@@ -370,6 +370,14 @@ body {
   margin-left: auto;
 }
 
+.keyword-bar__code {
+  font-size: 0.68rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #334155;
+}
+
 .keyword-list {
   display: flex;
   flex-wrap: wrap;
